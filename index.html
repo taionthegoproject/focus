@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Patta Focus — ปลูกป่าด้วย Pomodoro</title>
+<meta name="description" content="Pomodoro timer สนุกๆ ทุก session ได้ต้นไม้ 1 ต้น ทำครบได้ป่าสวย ฟรี ไม่ต้องสมัคร">
+<meta property="og:title" content="Patta Focus 🌱 — ปลูกป่าด้วย Pomodoro">
+<meta property="og:description" content="ทำ pomodoro → ได้ต้นไม้ → กลายเป็นป่า ฟรี ไม่ต้องสมัคร">
+<meta property="og:url" content="https://focus.patta.me">
+<meta name="theme-color" content="#0d1f0d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════ TOKENS ══════ */
+:root {
+  --bg:      #0d1f0d;
+  --bg2:     #162616;
+  --bg3:     #1e341e;
+  --card:    #1a2e1a;
+  --card2:   #213321;
+  --bd:      rgba(255,255,255,.08);
+  --bd2:     rgba(255,255,255,.05);
+  --text:    #e8f0e8;
+  --t2:      #8aab8a;
+  --t3:      #567556;
+  --green:   #4ade80;
+  --yellow:  #fbbf24;
+  --red:     #f87171;
+  --blue:    #60a5fa;
+  --sh:      0 4px 24px rgba(0,0,0,.4);
+  --r:       14px;
+  --rl:      20px;
+  --rx:      28px;
+  --p:       999px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; height: 100%; }
+body {
+  font-family: 'Sarabun', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100svh;
+  overflow-x: hidden;
+}
+h1,h2,h3 { font-family: 'Anuphan', sans-serif; }
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: 'Sarabun', sans-serif; border: none; background: none; color: inherit; }
+input { font-family: 'Sarabun', sans-serif; }
+
+/* ══════ LAYOUT ══════ */
+.wrap { max-width: 420px; margin: 0 auto; padding: 0 16px 80px; }
+
+/* ══════ NAV ══════ */
+.nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0 12px;
+  position: sticky; top: 0; z-index: 50;
+  background: linear-gradient(to bottom, var(--bg) 80%, transparent);
+}
+.nav-logo {
+  font-family: 'Anuphan', sans-serif;
+  font-size: 17px; font-weight: 700; color: var(--text);
+  display: flex; align-items: center; gap: 4px;
+}
+.nav-logo span { color: var(--green); }
+.coins-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 13px;
+  background: var(--card); border: 1px solid var(--bd);
+  border-radius: var(--p);
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+
+/* ══════ FOREST STAGE ══════ */
+.forest-stage {
+  border-radius: var(--rx);
+  overflow: hidden;
+  margin-bottom: 14px;
+  border: 1px solid var(--bd);
+  box-shadow: var(--sh);
+}
+.sky {
+  position: relative;
+  min-height: 200px;
+  background: linear-gradient(180deg, #050d05 0%, #0d1f0d 100%);
+  overflow: hidden;
+  transition: background 1.5s ease;
+  padding: 16px 16px 8px;
+}
+.stars-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.star {
+  position: absolute; background: #fff; border-radius: 50%;
+  animation: twinkle 2s ease-in-out infinite;
+}
+@keyframes twinkle { 0%,100%{opacity:.2} 50%{opacity:.9} }
+
+/* moon */
+.moon {
+  position: absolute; top: 14px; right: 20px;
+  font-size: 22px; opacity: .7;
+  animation: moonFloat 8s ease-in-out infinite;
+}
+@keyframes moonFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+
+/* clouds */
+.cloud {
+  position: absolute;
+  font-size: 20px; opacity: 0;
+  transition: opacity 1s;
+  animation: cloudDrift 20s linear infinite;
+}
+@keyframes cloudDrift { from{transform:translateX(-60px)} to{transform:translateX(60px)} }
+
+/* tree container */
+.tree-area {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 160px;
+  position: relative; z-index: 1;
+  justify-content: center;
+}
+.tree-empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+}
+.tree-empty-icon { font-size: 32px; }
+.tree-empty-text { font-size: 12px; color: var(--t3); }
+
+/* individual tree */
+.tree-item {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: default;
+  animation: treeGrow .6s cubic-bezier(.34,1.56,.64,1) both;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.6));
+  transition: transform .2s;
+  line-height: 1;
+}
+.tree-item:hover { transform: scale(1.15) translateY(-2px); }
+@keyframes treeGrow {
+  from { transform: scaleY(0) translateY(20px); opacity: 0; transform-origin: bottom; }
+  to   { transform: scaleY(1) translateY(0);    opacity: 1; transform-origin: bottom; }
+}
+
+/* ground */
+.ground-bar {
+  background: linear-gradient(180deg, #3d6b1e 0%, #2d5015 40%, #6b3d1e 100%);
+  padding: 6px 16px 0;
+  border-top: 3px solid #5a9a2a;
+}
+.ground-bar::before {
+  content: '';
+  display: block; height: 6px; margin-bottom: 4px;
+  background: repeating-linear-gradient(90deg,
+    #6dbf35 0, #6dbf35 10px, #5aab28 10px, #5aab28 20px);
+  border-radius: 3px;
+}
+.info-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba(0,0,0,.35);
+}
+.forest-name { font-size: 12px; color: var(--t2); font-weight: 500; }
+.forest-count { font-size: 12px; font-weight: 700; color: var(--green); }
+
+/* ══════ TIMER CARD ══════ */
+.card {
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: var(--rx);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--sh);
+}
+
+/* mode tabs */
+.mode-tabs {
+  display: flex; gap: 4px;
+  background: var(--bg2); border-radius: var(--p);
+  padding: 3px; margin-bottom: 20px;
+}
+.mtab {
+  flex: 1; padding: 7px; border-radius: var(--p);
+  font-size: 12px; font-weight: 600; color: var(--t2);
+  background: transparent; cursor: pointer;
+  transition: all .2s; text-align: center;
+}
+.mtab.on {
+  background: var(--card2); color: var(--text);
+  box-shadow: 0 1px 6px rgba(0,0,0,.3);
+}
+
+/* timer ring + preview */
+.timer-body { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.ring-wrap { position: relative; width: 136px; height: 136px; flex-shrink: 0; }
+.ring-wrap svg { transform: rotate(-90deg); display: block; }
+.rbg { fill: none; stroke: var(--bd2); stroke-width: 9; }
+.rfill {
+  fill: none; stroke-width: 9; stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke .4s;
+}
+.ring-inner {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.big-time {
+  font-family: 'Anuphan', sans-serif;
+  font-size: 34px; font-weight: 700; color: var(--text);
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.ring-lbl { font-size: 10px; color: var(--t2); margin-top: 3px; }
+
+/* growing preview */
+.grow-preview { flex: 1; text-align: center; }
+.grow-icon {
+  font-size: 52px; display: block; line-height: 1;
+  margin-bottom: 10px;
+  transition: all .4s cubic-bezier(.34,1.56,.64,1);
+}
+.grow-bar-wrap { background: var(--bg2); border-radius: var(--p); height: 5px; overflow: hidden; margin-bottom: 5px; }
+.grow-bar { height: 100%; border-radius: var(--p); transition: width 1s linear; }
+.grow-lbl { font-size: 11px; color: var(--t3); }
+
+/* task input */
+.task-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: var(--r); color: var(--text);
+  font-size: 13px; outline: none;
+  transition: border-color .2s;
+  margin-bottom: 16px;
+}
+.task-input::placeholder { color: var(--t3); }
+.task-input:focus { border-color: var(--green); }
+
+/* controls */
+.ctrl { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
+.cbtn {
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--bd);
+  background: var(--card2); color: var(--t2);
+  font-size: 17px; cursor: pointer;
+  transition: all .2s;
+}
+.cbtn:hover { border-color: var(--bd2); color: var(--text); background: var(--bg3); }
+.cbtn.main {
+  width: 60px; height: 60px; font-size: 22px;
+  background: var(--green); color: #0d1f0d;
+  border-color: transparent;
+  box-shadow: 0 4px 20px rgba(74,222,128,.3);
+}
+.cbtn.main:hover { box-shadow: 0 6px 28px rgba(74,222,128,.45); transform: scale(1.05); }
+.cbtn.main:active { transform: scale(.97); }
+
+/* stats */
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.stat {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: var(--r); padding: 12px 8px; text-align: center;
+}
+.stat-num { font-family: 'Anuphan', sans-serif; font-size: 22px; font-weight: 700; color: var(--text); line-height: 1; }
+.stat-lbl { font-size: 10px; color: var(--t3); margin-top: 4px; }
+
+/* ══════ SHOP CARD ══════ */
+.shop-title {
+  font-size: 13px; font-weight: 600; color: var(--t2);
+  margin-bottom: 12px;
+  display: flex; align-items: center; gap: 6px;
+}
+.shop-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; }
+.sitem {
+  background: var(--bg2); border: 1px solid var(--bd);
+  border-radius: var(--r); padding: 8px 6px; text-align: center;
+  cursor: pointer; transition: all .2s;
+}
+.sitem:hover:not(.locked) { border-color: var(--green); background: var(--bg3); }
+.sitem.sel { border-color: var(--green); background: rgba(74,222,128,.08); }
+.sitem.locked { opacity: .35; cursor: not-allowed; }
+.sitem-icon { font-size: 24px; margin-bottom: 4px; }
+.sitem-name { font-size: 9px; color: var(--t2); margin-bottom: 3px; }
+.sitem-cost { font-size: 10px; font-weight: 700; color: var(--text); }
+
+/* ══════ FOOTER ══════ */
+.footer {
+  text-align: center; padding: 20px 0;
+  font-size: 11px; color: var(--t3);
+}
+.footer a { color: var(--t2); }
+
+/* ══════ TOAST ══════ */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--green); color: #0d1f0d;
+  padding: 10px 20px; border-radius: var(--p);
+  font-size: 13px; font-weight: 700;
+  transition: transform .3s cubic-bezier(.16,1,.3,1);
+  pointer-events: none; white-space: nowrap;
+  z-index: 99; box-shadow: 0 4px 20px rgba(74,222,128,.4);
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ══════ ANIMATIONS ══════ */
+@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+.pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+/* ══════ RESPONSIVE ══════ */
+@media (max-width: 400px) {
+  .big-time { font-size: 28px; }
+  .grow-icon { font-size: 44px; }
+  .shop-grid { grid-template-columns: repeat(4,1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-logo">🌿 <span>Patta</span> Focus</div>
+    <div class="coins-pill">🪙 <span id="coins">0</span></div>
+  </nav>
+
+  <!-- FOREST STAGE -->
+  <div class="forest-stage">
+    <div class="sky" id="sky">
+      <div class="stars-layer" id="stars"></div>
+      <div class="moon">🌙</div>
+      <!-- clouds (appear when forest grows) -->
+      <div class="cloud" id="cloud1" style="top:20px;left:20%;animation-delay:0s">☁️</div>
+      <div class="cloud" id="cloud2" style="top:40px;left:55%;animation-delay:7s;font-size:14px">☁️</div>
+
+      <!-- empty state -->
+      <div class="tree-empty" id="tree-empty">
+        <div class="tree-empty-icon">🌱</div>
+        <div class="tree-empty-text">ทำ pomodoro แรกเพื่อปลูกต้นไม้</div>
+      </div>
+
+      <!-- tree area -->
+      <div class="tree-area" id="tree-area"></div>
+    </div>
+
+    <div class="ground-bar"></div>
+
+    <div class="info-strip">
+      <span class="forest-name" id="forest-name">ป่ายังว่างเปล่า</span>
+      <span class="forest-count" id="forest-count">🌱 0 ต้น</span>
+    </div>
+  </div>
+
+  <!-- TIMER -->
+  <div class="card">
+    <div class="mode-tabs">
+      <button class="mtab on" onclick="setMode(0,this)">🍅 Focus</button>
+      <button class="mtab" onclick="setMode(1,this)">☕️ Break</button>
+      <button class="mtab" onclick="setMode(2,this)">🌿 Long</button>
+    </div>
+
+    <div class="timer-body">
+      <div class="ring-wrap">
+        <svg width="136" height="136" viewBox="0 0 136 136">
+          <circle class="rbg" cx="68" cy="68" r="58"/>
+          <circle class="rfill" id="ring" cx="68" cy="68" r="58"
+            stroke-dasharray="364" stroke-dashoffset="0" stroke="#4ade80"/>
+        </svg>
+        <div class="ring-inner">
+          <div class="big-time" id="ttime">25:00</div>
+          <div class="ring-lbl" id="rlbl">focus</div>
+        </div>
+      </div>
+
+      <div class="grow-preview">
+        <span class="grow-icon" id="gicon">🌱</span>
+        <div class="grow-bar-wrap">
+          <div class="grow-bar" id="gbar" style="width:0%;background:#4ade80"></div>
+        </div>
+        <div class="grow-lbl" id="glbl">ต้นไม้กำลังโต...</div>
+      </div>
+    </div>
+
+    <input class="task-input" id="task" placeholder="กำลังทำอะไรอยู่? (ไม่บังคับ)">
+
+    <div class="ctrl">
+      <button class="cbtn" onclick="doReset()" title="รีเซ็ต" aria-label="รีเซ็ต">↺</button>
+      <button class="cbtn main" id="playbtn" onclick="togglePlay()" aria-label="เล่น/หยุด">▶</button>
+      <button class="cbtn" onclick="doSkip()" title="ข้าม" aria-label="ข้าม">⏭</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-num" id="s-sess">0</div>
+        <div class="stat-lbl">Sessions</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="s-focus">0m</div>
+        <div class="stat-lbl">Focus time</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num" id="s-trees">0</div>
+        <div class="stat-lbl">🌳 ต้น</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHOP -->
+  <div class="card">
+    <div class="shop-title">🛒 ร้านค้า — ปลูกต้นไม้ใหม่ด้วยเหรียญ</div>
+    <div class="shop-grid" id="shop-grid"></div>
+  </div>
+
+  <!-- HOW TO -->
+  <div class="card" style="padding:16px 20px;">
+    <div style="font-size:12px;color:var(--t2);line-height:1.8;">
+      <div style="font-weight:700;color:var(--text);margin-bottom:6px;">วิธีเล่น</div>
+      <div>🍅 ทำ focus 25 นาที → ได้ต้นไม้ 1 ต้น + 🪙 2 เหรียญ</div>
+      <div>🥀 ออกกลางคัน → ต้นไม้ไม่โต</div>
+      <div>🪙 เก็บเหรียญซื้อต้นไม้ชนิดใหม่</div>
+      <div>🏆 ปลูก 16+ ต้น → ป่าแห่งความสำเร็จ</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    part of <a href="https://patta.me">patta.me</a> · ฟรีตลอดไป 🌿
+  </div>
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════ CONFIG ══════
+var MODES = [
+  { lbl:'focus',      min:25, col:'#4ade80', grow:['🌱','🌿','🪴','🌳'] },
+  { lbl:'break',      min:5,  col:'#60a5fa', grow:['☕️','☕️','☕️','☕️'] },
+  { lbl:'long break', min:15, col:'#fbbf24', grow:['🌿','🌿','🌿','🌿'] }
+];
+var TREES = [
+  { id:'oak',      e:'🌳', n:'โอ๊ก',         cost:0,  unlocked:true  },
+  { id:'pine',     e:'🌲', n:'สน',           cost:3,  unlocked:false },
+  { id:'palm',     e:'🌴', n:'ปาล์ม',        cost:5,  unlocked:false },
+  { id:'sakura',   e:'🌸', n:'ซากุระ',       cost:6,  unlocked:false },
+  { id:'cactus',   e:'🌵', n:'กระบองเพชร',   cost:4,  unlocked:false },
+  { id:'bamboo',   e:'🎋', n:'ไผ่',          cost:5,  unlocked:false },
+  { id:'mushroom', e:'🍄', n:'เห็ด',         cost:3,  unlocked:false },
+  { id:'herb',     e:'🌿', n:'สมุนไพร',      cost:2,  unlocked:false },
+];
+var FOREST_NAMES = [
+  'ป่ายังว่างเปล่า',
+  'กล้าไม้ตัวน้อย 🌱',
+  'ป่าเล็กน้อย 🌿',
+  'ป่าน้อย 🌳',
+  'ป่าเขียวขจี 🍃',
+  'ป่าใหญ่โต 🏕️',
+  'ป่าอุดมสมบูรณ์ 🦋',
+  'ป่าแห่งความสำเร็จ 🏆'
+];
+var TREE_SIZES = [36,44,32,48,38,42,34,50,36,44,30,46,40,36,44,32];
+var SKY_COLORS = [
+  'linear-gradient(180deg,#050d05 0%,#0d1f0d 100%)',
+  'linear-gradient(180deg,#071a07 0%,#112211 100%)',
+  'linear-gradient(180deg,#09200a 0%,#152815 100%)',
+  'linear-gradient(180deg,#0b2510 0%,#183018 100%)',
+  'linear-gradient(180deg,#0d2a14 0%,#1a381a 100%)',
+  'linear-gradient(180deg,#0f3018 0%,#1d401e 100%)',
+  'linear-gradient(180deg,#113618 0%,#20471f 100%)',
+  'linear-gradient(180deg,#133c1c 0%,#235022 100%)'
+];
+
+// ══════ STATE ══════
+var mode = 0, cur = 0, total = 0, running = false, timer = null;
+var coins = 0, forest = [], sel = 'oak';
+var sessions = 0, focusMins = 0;
+var CIRC = 2 * Math.PI * 58;
+
+// load from localStorage
+(function(){
+  try {
+    var s = JSON.parse(localStorage.getItem('patta_focus') || '{}');
+    if(s.coins) coins = s.coins;
+    if(s.forest) forest = s.forest;
+    if(s.sel) sel = s.sel;
+    if(s.sessions) sessions = s.sessions;
+    if(s.focusMins) focusMins = s.focusMins;
+    if(s.trees) s.trees.forEach(function(t){
+      var found = TREES.find(function(x){return x.id===t.id;});
+      if(found) found.unlocked = t.unlocked;
+    });
+  }catch(e){}
+})();
+
+function save(){
+  try{
+    localStorage.setItem('patta_focus', JSON.stringify({
+      coins:coins, forest:forest, sel:sel,
+      sessions:sessions, focusMins:focusMins,
+      trees:TREES.map(function(t){return{id:t.id,unlocked:t.unlocked};})
+    }));
+  }catch(e){}
+}
+
+// ══════ STARS ══════
+(function(){
+  var s = document.getElementById('stars');
+  for(var i=0;i<35;i++){
+    var d = document.createElement('div');
+    d.className = 'star';
+    var sz = Math.random()*1.8+0.8;
+    d.style.cssText = 'width:'+sz+'px;height:'+sz+'px;left:'+(Math.random()*100)+'%;top:'+(Math.random()*70)+'%;animation-delay:'+(Math.random()*2.5)+'s;animation-duration:'+(1.2+Math.random()*1.5)+'s';
+    s.appendChild(d);
+  }
+})();
+
+// ══════ TIMER LOGIC ══════
+function setMode(m, btn){
+  if(running){ pause(); if(mode===0) toast('🥀 ต้นไม้ไม่โตเพราะออกกลางคัน'); }
+  mode = m;
+  document.querySelectorAll('.mtab').forEach(function(t){t.classList.remove('on');});
+  btn.classList.add('on');
+  reset();
+}
+
+function reset(){
+  clearInterval(timer); running = false;
+  total = MODES[mode].min * 60; cur = total;
+  document.getElementById('playbtn').textContent = '▶';
+  document.getElementById('ring').style.stroke = MODES[mode].col;
+  document.getElementById('gbar').style.background = MODES[mode].col;
+  document.getElementById('rlbl').textContent = MODES[mode].lbl;
+  document.getElementById('gicon').textContent = MODES[mode].grow[0];
+  document.getElementById('gbar').style.width = '0%';
+  document.getElementById('glbl').textContent = mode===0 ? 'ต้นไม้กำลังโต...' : 'พักผ่อนให้เต็มที่ ☕️';
+  document.getElementById('gicon').classList.remove('pulse');
+  renderTime();
+}
+
+function renderTime(){
+  var m = Math.floor(cur/60), s = cur%60;
+  document.getElementById('ttime').textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+  var pct = (total-cur)/total;
+  document.getElementById('ring').style.strokeDashoffset = String(CIRC*pct);
+  document.getElementById('gbar').style.width = Math.round(pct*100)+'%';
+  if(mode===0){
+    var g = MODES[0].grow;
+    var gi = Math.min(Math.floor(pct*g.length), g.length-1);
+    document.getElementById('gicon').textContent = g[gi];
+  }
+}
+
+function togglePlay(){ running ? pause() : play(); }
+
+function play(){
+  running = true;
+  document.getElementById('playbtn').textContent = '⏸';
+  document.getElementById('gicon').classList.add('pulse');
+  timer = setInterval(function(){
+    cur--;
+    renderTime();
+    if(cur <= 0) done();
+  }, 1000);
+}
+
+function pause(){
+  running = false;
+  clearInterval(timer);
+  document.getElementById('playbtn').textContent = '▶';
+  document.getElementById('gicon').classList.remove('pulse');
+}
+
+function doReset(){
+  if(running){ pause(); if(mode===0) toast('🥀 ต้นไม้ไม่โตเพราะออกกลางคัน'); }
+  reset();
+}
+
+function doSkip(){
+  if(running) pause();
+  done();
+}
+
+function done(){
+  pause();
+  if(mode===0){
+    sessions++; focusMins += MODES[0].min;
+    var t = TREES.find(function(x){return x.id===sel;});
+    forest.push({ e: t ? t.e : '🌳', id: sel });
+    coins += 2;
+    document.getElementById('coins').textContent = coins;
+    document.getElementById('s-sess').textContent = sessions;
+    document.getElementById('s-focus').textContent = focusMins+'m';
+    document.getElementById('s-trees').textContent = forest.length;
+    renderForest();
+    save();
+    beep();
+    var msg = '🌳 ต้นไม้โตแล้ว! +2🪙';
+    if(sessions%4===0) msg += ' · ได้พักยาวแล้ว! 🌿';
+    toast(msg);
+    setTimeout(function(){
+      var tabs = document.querySelectorAll('.mtab');
+      setMode(sessions%4===0 ? 2 : 1, tabs[sessions%4===0 ? 2 : 1]);
+    }, 1600);
+  } else {
+    toast('☀️ หมดเวลาพัก — กลับมา focus กัน!');
+    setTimeout(function(){
+      setMode(0, document.querySelectorAll('.mtab')[0]);
+    }, 1400);
+  }
+  renderShop();
+}
+
+// ══════ FOREST RENDER ══════
+function renderForest(){
+  var area = document.getElementById('tree-area');
+  var empty = document.getElementById('tree-empty');
+  if(!forest.length){ empty.style.display='flex'; area.innerHTML=''; return; }
+  empty.style.display = 'none';
+
+  // add only latest tree
+  var latest = forest[forest.length-1];
+  var span = document.createElement('span');
+  var sz = TREE_SIZES[(forest.length-1) % TREE_SIZES.length];
+  span.style.cssText = 'font-size:'+sz+'px;display:inline-block;animation:treeGrow .6s cubic-bezier(.34,1.56,.64,1) both;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55));cursor:default;line-height:1;transition:transform .2s;';
+  span.textContent = latest.e;
+  span.title = 'ต้นที่ '+forest.length;
+  span.onmouseover = function(){ this.style.transform='scale(1.2) translateY(-3px)'; };
+  span.onmouseout  = function(){ this.style.transform='scale(1)'; };
+  area.appendChild(span);
+
+  // sky color level
+  var lvl = Math.min(Math.floor(forest.length/3), SKY_COLORS.length-1);
+  document.getElementById('sky').style.background = SKY_COLORS[lvl];
+
+  // clouds appear at 5+ trees
+  if(forest.length >= 5){
+    document.getElementById('cloud1').style.opacity = '.4';
+    document.getElementById('cloud2').style.opacity = '.3';
+  }
+
+  // forest name
+  var ni = Math.min(Math.floor(forest.length/2), FOREST_NAMES.length-1);
+  if(forest.length===1) ni=1;
+  document.getElementById('forest-name').textContent = FOREST_NAMES[ni];
+  document.getElementById('forest-count').textContent = '🌳 '+forest.length+' ต้น';
+}
+
+// ══════ SHOP ══════
+function renderShop(){
+  var g = document.getElementById('shop-grid');
+  g.innerHTML = '';
+  TREES.forEach(function(t){
+    var canBuy = !t.unlocked && coins>=t.cost;
+    var d = document.createElement('div');
+    d.className = 'sitem' + (t.unlocked ? (sel===t.id?' sel':'') : canBuy ? '' : ' locked');
+    d.innerHTML =
+      '<div class="sitem-icon">'+t.e+'</div>'+
+      '<div class="sitem-name">'+t.n+'</div>'+
+      '<div class="sitem-cost">'+(t.unlocked ? (sel===t.id?'✓ เลือก':'✓ มีแล้ว') : t.cost+'🪙')+'</div>';
+    if(t.unlocked){
+      d.onclick = function(){ sel=t.id; save(); renderShop(); toast('เลือก '+t.e+' '+t.n+' แล้ว'); };
+    } else if(canBuy){
+      d.onclick = function(){ buyTree(t.id); };
+    }
+    g.appendChild(d);
+  });
+}
+
+function buyTree(id){
+  var t = TREES.find(function(x){return x.id===id;});
+  if(!t||t.unlocked||coins<t.cost) return;
+  coins -= t.cost;
+  t.unlocked = true; sel = id;
+  document.getElementById('coins').textContent = coins;
+  save(); renderShop();
+  toast('🎉 ปลดล็อค '+t.e+' '+t.n+'!');
+}
+
+// ══════ SOUND ══════
+function beep(){
+  try{
+    var ctx = new(window.AudioContext||window.webkitAudioContext)();
+    [[0,523,0.18],[160,659,0.18],[320,784,0.2],[480,1047,0.14]].forEach(function(p){
+      var o=ctx.createOscillator(), g=ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=p[1]; o.type='sine';
+      var t=ctx.currentTime+p[0]/1000;
+      g.gain.setValueAtTime(p[2],t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+      o.start(t); o.stop(t+0.32);
+    });
+  }catch(e){}
+}
+
+// ══════ TOAST ══════
+var toastTimer;
+function toast(msg){
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 2600);
+}
+
+// ══════ INIT ══════
+window.addEventListener('DOMContentLoaded', function(){
+  document.getElementById('coins').textContent = coins;
+  document.getElementById('s-sess').textContent = sessions;
+  document.getElementById('s-focus').textContent = focusMins+'m';
+  document.getElementById('s-trees').textContent = forest.length;
+  // rebuild forest from saved data
+  if(forest.length){
+    document.getElementById('tree-empty').style.display='none';
+    forest.forEach(function(item,i){
+      var span = document.createElement('span');
+      var sz = TREE_SIZES[i % TREE_SIZES.length];
+      span.style.cssText='font-size:'+sz+'px;display:inline-block;filter:drop-shadow(0 6px 10px rgba(0,0,0,.55));cursor:default;line-height:1;transition:transform .2s;';
+      span.textContent = item.e;
+      span.onmouseover=function(){this.style.transform='scale(1.2) translateY(-3px)';};
+      span.onmouseout=function(){this.style.transform='scale(1)';};
+      document.getElementById('tree-area').appendChild(span);
+    });
+    var lvl=Math.min(Math.floor(forest.length/3),SKY_COLORS.length-1);
+    document.getElementById('sky').style.background=SKY_COLORS[lvl];
+    if(forest.length>=5){
+      document.getElementById('cloud1').style.opacity='.4';
+      document.getElementById('cloud2').style.opacity='.3';
+    }
+    var ni=Math.min(Math.floor(forest.length/2),FOREST_NAMES.length-1);
+    if(forest.length===1) ni=1;
+    document.getElementById('forest-name').textContent=FOREST_NAMES[ni];
+    document.getElementById('forest-count').textContent='🌳 '+forest.length+' ต้น';
+  }
+  reset();
+  renderShop();
+});
+</script>
+</body>
+</html>
